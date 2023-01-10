@@ -10,15 +10,15 @@ load_data <- function(project, cells = 3, features){
     # Load the PBMC dataset
     reads <- Read10X(data.dir = "data/pbmc3k/filtered_gene_bc_matrices/hg19/")
     # Initialize the Seurat object with the raw (non-normalized data).
+    cts <- reads$`Gene Expression`
     data <- CreateSeuratObject(
-    counts = reads, 
-    project = project, 
-    min.cells = as.numeric(cells), 
-    min.features = as.numeric(features))
+            cts, 
+            project = project, 
+            min.cells = as.numeric(cells), 
+            min.features = as.numeric(features)
+            )
     
-    print(data)
-    
-    
+    return(reactiveVal(data))
 }
 
 
