@@ -3,7 +3,7 @@
 if (!require('pacman')) install.packages("pacman")
 
 # Load contributed packages with pacman
-pacman::p_load(pacman, Seurat, tidyverse, shiny)
+pacman::p_load(pacman, Seurat, SeuratObject, tidyverse, shiny, DT)
 
 
 load_data <- function(project_name, num_cells = 3, num_features = 200){
@@ -49,12 +49,7 @@ subset_dataset <- function(data, min_rna = 200, max_rna = 2500, mito = 5){
 
 normalize_dt <- function(data, strategy = "LogNormalize"){
   
-  if(strategy == "scTransform"){
-    results <- SCTransform(data)
-  }else{
-    results <-  NormalizeData(data,  normalization.method = strategy)
-  }
-  
+  results <-  NormalizeData(data,  normalization.method = strategy)
   return(results)
 }
 
@@ -126,14 +121,59 @@ server <- function(input, output, session) {
   plt <- reactive({
     variable_features_plot(hv_seurat())
   })
+    
+  output$topvariable <- renderPlot(plt())
+  
   
   scaled_seurat <- reactive({
     all.genes <- rownames(hv_seurat())
     ScaleData(hv_seurat(), all.genes)
   })
-    
-    
-  output$topvariable <- renderPlot(plt())
+  
+  pca_seurat <- reactive({
+    RunPCA(scaled_seurat(), features = VariableFeatures(object = scaled_seurat()))
+  })
+  
+  jack_seurat <- reactive({
+    data <- JackStraw(pca_seurat(), num.replicate = 100)
+    data <- ScoreJackStraw(data, dims = 1:20)
+  })
+  
+  output$pca <- renderPlot(DimPlot(pca_seurat(), reduction = "pca"))
+  
+  output$jack <- renderPlot(JackStrawPlot(jack_seurat(), dims = 1:15))
+  
+  elbow_plot <- reactive({ElbowPlot(jack_seurat(), ndims=20, reduction = "pca")})
+  output$elbow <- renderPlot(elbow_plot())
+  
+  cluster_seurat <- reactive({
+    FindClusters(
+      FindNeighbors(jack_seurat(), resolution = input$range/100),
+      dims = 1:10
+    )
+  })
+  
+  
+  umap_seurat <- reactive({RunUMAP(cluster_seurat(), dims = 1:10)})
+  umap_plot <- reactive({DimPlot(umap_seurat(), reduction = "umap")})
+  output$umap <- renderPlot(umap_plot())
+  
+  biomarkers <- reactive({
+    FindAllMarkers(umap_seurat(), only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25) %>%
+      group_by(clusters) %>%
+      slice_max(n=2, order_by = avg_log2FC)
+  })
+
+  output$biomarkers <- DT::renderDataTable({biomarkers()})
+  output$deplot <- renderPlot(VlnPlot(umap_seurat(), features = c("MS4A1", "CD79A")))
+  
+  output$heatmap <- renderPlot({
+    biomarkers() %>%
+      group_by(cluster) %>%
+      top_n(n = 10, wt = avg_log2FC) -> top10
+    DoHeatmap(umap_seurat(), features = top10$gene) + NoLegend()
+  })
+
 }
 
 
