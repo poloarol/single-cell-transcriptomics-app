@@ -124,18 +124,17 @@ ui <- fluidPage(
               h2("6. Identification of Differential Expressed features"),
               
               fluidRow(
-                column(2,
+                column(2),
+                column(4,
                        align = "center",
                        h4("Top Expressed biomarkers"),
                        DT::dataTableOutput("biomarkers")),
+                column(1),
                 column(4,
                        align = "center",
                        h4("Violin Plot of Top 4 Expressed biomarkers across clusters"),
                        plotOutput("deplot")),
-                column(6,
-                       align = "center",
-                       h4("Expression HeatMap of top 20 biomarkers"),
-                       plotOutput("heatmap"))
+                column(1),
               ),
               
               

@@ -159,20 +159,25 @@ server <- function(input, output, session) {
   output$umap <- renderPlot(umap_plot())
   
   biomarkers <- reactive({
-    FindAllMarkers(umap_seurat(), only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25) %>%
-      group_by(clusters) %>%
-      slice_max(n=2, order_by = avg_log2FC)
+    markers <- FindAllMarkers(umap_seurat(), only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+    df_grouped <- split(markers, markers$cluster)
+    top2_rows <- lapply(df_grouped, function(x) x[order(x$avg_log2FC, decreasing = TRUE)[1:2],])
+    df_result <- do.call(rbind, top2_rows)
+    df <- df_result[c("gene","avg_log2FC","p_val_adj")]
+    df <- df[order(-df$avg_log2FC),]
+    colnames(df) <- c("Gene", "Average Log2 Fold Change","Adjusted P-Value")
+    df
   })
 
-  output$biomarkers <- DT::renderDataTable({biomarkers()})
+  output$biomarkers <- DT::renderDataTable({biomarkers()}, rownames = FALSE)
   output$deplot <- renderPlot(VlnPlot(umap_seurat(), features = c("MS4A1", "CD79A")))
   
-  output$heatmap <- renderPlot({
-    biomarkers() %>%
-      group_by(cluster) %>%
-      top_n(n = 10, wt = avg_log2FC) -> top10
-    DoHeatmap(umap_seurat(), features = top10$gene) + NoLegend()
-  })
+  # output$heatmap <- renderPlot({
+  #   df_grouped <- split(biomarkers(), biomarkers$cluster)
+  #   top10_rows <- lapply(df_grouped, function(x) x[order(x$avg_log2FC, decreasing = TRUE)[1:10],])
+  #   top10 <- do.call(rbind, top10_rows)
+  #   DoHeatmap(umap_seurat(), features = top10$gene) + NoLegend()
+  # })
 
 }
 
