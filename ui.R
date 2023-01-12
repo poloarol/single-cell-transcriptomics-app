@@ -86,11 +86,11 @@ ui <- fluidPage(
                                                        align = "center",
                                                        h4("t-SNE Clusters"),
                                                        plotOutput("tsne") %>% withSpinner(color="#0dc5c1")))))),
-                                   tabPanel("Doublet Removal",
-                                            sidebarLayout(
-                                              sidebarPanel(),
-                                              mainPanel("To be added")
-                                            )),
+                                   # tabPanel("Doublet Removal",
+                                   #          sidebarLayout(
+                                   #            sidebarPanel(),
+                                   #            mainPanel("To be added")
+                                   #          )),
                                    tabPanel("Differentially Expressed Genes",
                                             sidebarLayout(
                                               sidebarPanel(

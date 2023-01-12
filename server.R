@@ -5,6 +5,8 @@ if (!require('pacman')) install.packages("pacman")
 # Load contributed packages with pacman
 pacman::p_load(pacman, Seurat, SeuratObject, tidyverse, shiny, DT)
 
+source("doublet_removal.R")
+
 
 load_data <- function(project_name, num_cells = 3, num_features = 200){
     # Load the PBMC dataset
@@ -154,6 +156,7 @@ server <- function(input, output, session) {
   tsne_seurat <- reactive({RunTSNE(cluster_seurat(), dims = 1:input$num.dim)})
   tsne_plot <- reactive({DimPlot(tsne_seurat(), reduction = "tsne")})
   output$tsne <- renderPlot(tsne_plot())
+  
   
 
   biomarkers <- reactive({
