@@ -2,7 +2,7 @@
 
 if (!require('pacman')) install.packages("pacman")
 
-pacman::p_load(pacman, tidyverse, shiny, DT)
+pacman::p_load(pacman, tidyverse, shiny, DT, shinycssloaders)
 
 ui <- fluidPage(
   
@@ -11,139 +11,106 @@ ui <- fluidPage(
   navbarPage(
     "single-cell transcriptomics",
     tabPanel("Single-Cell Transcriptomics",
+             br(),
              mainPanel(width=12,
-               
-               h2("1. Quality Control and Cell Selection"),
-               
-               fluidRow(align="center",
-                 column(4,
-                        align = "center",
-                        h4("Project Name"),
-                        textInput("proj_name", NULL, value = "pbmc3k", width = NULL, placeholder = NULL)
-                 ),
-                 column(4,
-                        align = "center",
-                        h4("Min. Number of Cells"),
-                        textInput("min.cells", NULL, value = 10, width = NULL, placeholder = NULL)
-                 ),
-                 column(4,
-                        align = "center",
-                        h4("Min. Number of features"),
-                        textInput("min.feats", NULL, value = 200, width = NULL, placeholder = NULL)
-                 )
-               ),
-               
-               fluidRow(
-                 column(6, align = "center", "QC Metrics",plotOutput("metrics")),
-                 column(6, align = "center", "Feature-Feature Relationships", plotOutput("features"))
-               ),
-               
-               h2("2. Filtering and Doublet removal"),
-              
-              fluidRow(
-                column(3,
-                       align = "center",
-                       h4("Min. Number of Genes Expressed"),
-                       textInput("min_cells", NULL, value = 200, width = NULL, placeholder = NULL)
-                ),
-                column(3,
-                       align = "center",
-                       h4("Max. number of Genes Expressed"),
-                       textInput("max_cells", NULL, value = 2500, width = NULL, placeholder = NULL)
-                ),
-                column(3,
-                       align = "center",
-                       h4("Percentage Mitochondrial Genes"),
-                       textInput("mt", NULL, value = 5, width = NULL, placeholder = NULL)
-                ),
-                column(3,
-                       h4("Dealing with Doublets"),
-                       checkboxInput("dblt", "Doublet Removal"))
-              ),
-              
-              h2("3. Identification of highly variable genes"),
-              
-              fluidRow(
-                column(4,
-                       h4("Parameters"),
-                       div(class="option-group",
-                           radioButtons("normalization",
-                                        "Normalization Strategy",
-                                        choices = c("LogNormalize", "CLR", "RC"),
-                                        inline = TRUE),
-                           radioButtons("ftselection",
-                                        "Feature Selection",
-                                        choices = c("vst", "mvp", "disp"),
-                                        inline = TRUE
-                                        )
-                           # checkboxGroupInput("scaling-data",
-                           #              "Scaling Data Options",
-                           #              choices = c("Speed Up", "Remove unwanted sources of variation"))
-                           )),
-                       # actionButton('process-data-scaling', "Process Data")),
-                column(8,
-                       align = "center",
-                       h4("Top 10 most variable genes"),
-                       plotOutput("topvariable"))
-              ),
-              
-              h2("4. Linear Dimensional Reduction (PCA)"),
-              
-              fluidRow(
-                column(4,
-                       align = "center",
-                       h4("Visualise PCA"),
-                       plotOutput("pca")),
-                column(4,
-                       align = "center",
-                       h4("Identify the number of significant PCs"),
-                       plotOutput("jack")),
-                column(4,
-                       align = "center",
-                       h4("Elbow Plot: Ranking of PCs by % of variance explained"),
-                       plotOutput("elbow"))
-              ),
-              
-              h2("5. Find Clusters and Run non-linear dimensionality reduction"),
-              
-              fluidRow(
-                column(2),
-                column(4,
-                  align = "center",
-                  h4("UMAP Resolution"),
-                  sliderInput("range", "Resolution:",min = 0, max = 100, value = 50)
-                ),
-                column(4,
-                       align = "center",
-                       h4("UMAP Clusters"),
-                       plotOutput("umap")
-                ),
-                column(2)
-              ),
-              
-              h2("6. Identification of Differential Expressed features"),
-              
-              fluidRow(
-                column(2),
-                column(4,
-                       align = "center",
-                       h4("Top Expressed biomarkers"),
-                       DT::dataTableOutput("biomarkers")),
-                column(1),
-                column(4,
-                       align = "center",
-                       h4("Violin Plot of Top 4 Expressed biomarkers across clusters"),
-                       plotOutput("deplot")),
-                column(1),
-              ),
-              
-              
-              )),
+                       tabsetPanel(type = "pills",
+                                   br(), br(),
+                                   tabPanel("Quality Control & Filtering",
+                                            sidebarLayout(
+                                              sidebarPanel(
+                                                width = 3,
+                                                h4("Parameters"),
+                                                textInput("proj.name", "Project name",value = "abc13"),
+                                                numericInput("min.cells", "Min. number of cells", 5),
+                                                numericInput("min.feats", "Min. number of features", 200),
+                                                br(),
+                                                h4("Adjust parameters to remove low quality cells and empty droplets"),
+                                                numericInput("min.genes", "Min. number of genes", 200),
+                                                numericInput("max.genes", "Max. number of genes", 2500),
+                                                numericInput("mito.pcts", "Percentage of Mitochonrial genes", 5),
+                                                actionButton("subset", "Process")
+                                              ),
+                                              mainPanel(
+                                                br(), br(), br(),
+                                                 fluidRow(
+                                                   column(6, align = "center", h4("QC Metrics"), plotOutput("metrics") %>% withSpinner(color="#0dc5c1")),
+                                                   column(6, align = "center", h4("Feature-Feature Relationships"), plotOutput("features") %>% withSpinner(color="#0dc5c1"))
+                                                 )))),
+                                   tabPanel("Identification of highly variable genes",
+                                            sidebarLayout(
+                                              sidebarPanel(
+                                                width = 3,
+                                                h4("Normalization Parameters"),
+                                                br(), br(),
+                                                div(class="option-group",
+                                                    numericInput("nfeatures", "Number of features", 2000),
+                                                    radioButtons("normalization",
+                                                                 "Normalization Strategy",
+                                                                 choices = c("LogNormalize", "CLR", "RC"), inline = TRUE),
+                                                    radioButtons("ftselection",
+                                                                 "Feature Selection",
+                                                                 choices = c("vst", "mvp", "disp"), inline = TRUE)),
+                                                actionButton("run.norm", "Run Normalization")),
+                                              mainPanel(
+                                                br(), br(),
+                                                column(12, plotOutput("topvariable") %>% withSpinner(color="#0dc5c1"))))),
+                                   tabPanel("Linear dimensionality reduction",
+                                            fluidRow(
+                                              column(4,
+                                                     align = "center",
+                                                     h4("Viisualize PCA"),
+                                                     plotOutput("pca") %>% withSpinner(color="#0dc5c1")),
+                                              column(4,
+                                                     align = "center",
+                                                     h4("Number of significant PCs"),
+                                                     plotOutput("jack") %>% withSpinner(color="#0dc5c1")),
+                                              column(4,
+                                                     align = "center",
+                                                     h4("Elbow Plot: Ranking of PCs by % of variance explained"),
+                                                     plotOutput("elbow") %>% withSpinner(color="#0dc5c1")))),
+                                   tabPanel("Clustering and non-linear dimensionaliry reduction",
+                                            sidebarLayout(
+                                              sidebarPanel(
+                                                width = 3,
+                                                h4("Dimensionality Reduction Parameters"),
+                                                numericInput("num.dim", "Number of dimensions", 10),
+                                                sliderInput("range", "UMAP Resolution:",min = 0, max = 100, value = 50)
+                                              ),
+                                            mainPanel(
+                                              fluidRow(
+                                                column(5,
+                                                       align = "center",
+                                                       h4("UMAP Clusters"),
+                                                       plotOutput("umap") %>% withSpinner(color="#0dc5c1")),
+                                                column(5,
+                                                       align = "center",
+                                                       h4("t-SNE Clusters"),
+                                                       plotOutput("tsne") %>% withSpinner(color="#0dc5c1")))))),
+                                   tabPanel("Doublet Removal",
+                                            sidebarLayout(
+                                              sidebarPanel(),
+                                              mainPanel("To be added")
+                                            )),
+                                   tabPanel("Differentially Expressed Genes",
+                                            sidebarLayout(
+                                              sidebarPanel(
+                                                width = 3,
+                                                h4("Enter names genes to visualise"),
+                                                textInput("gene.list", "*separate using commas", value = "")
+                                            ),
+                                            fluidRow(
+                                              column(4,
+                                                     align = "center",
+                                                     h4("Top Expressed biomarkers"),
+                                                     DT::dataTableOutput("biomarkers") %>% withSpinner(color="#0dc5c1")),
+                                              column(4,
+                                                     align = "center",
+                                                     h4("Violin Plot of expressed biomarker"),
+                                                     plotOutput("deplot") %>% withSpinner(color="#0dc5c1"))))))),
+    
     tabPanel("Single-Cell Intergration",
              mainPanel()),
     tabPanel("Spatial Transcriptomics Analysis",
              mainPanel()),
-    navbarMenu("More",
-               "Repository")
   )
-)
+))
