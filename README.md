@@ -17,8 +17,9 @@ The analysis to be included are;
 6. Automatic cell labelling
 
 ## Status
-1. The complete clustering workflow is complete
+1. Completed scRNA-seq workflow
 2. Comming soon: automatic labelling and doublet removal
+3. scATAC-seq analysis
 
 ## Packages
 -----------
@@ -26,6 +27,7 @@ The analysis to be included are;
 2. Signac (scATAC-seq)
 3. DoubletFinder (Removal of doublets)
 4. SingleR (Automatic labelling of cells)
+5. celldex (Autmatic labelling of cells)
 
 ## Usage
 --------
