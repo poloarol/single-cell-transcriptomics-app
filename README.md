@@ -9,8 +9,8 @@ to aid wet lab scientist to analyse their single cell data.
 
 The analysis to be included are;
 
-1. Single cell data clustering
-2. Single cell data integration
+1. Single cell RNAseq clustering workflow
+2. Single cell RNA-seq data integration
 3. Single cell ATAC-seq analysis
 4. Integration of scRNA-seq and scATAC-seq data
 5. Multimodal analysis using cite-seq

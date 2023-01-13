@@ -11,12 +11,12 @@ ui <- fluidPage(
   titlePanel("A Shiny app to facilate analysis of single-cell transcriptomics data"),
   
   navbarPage(
-    "single-cell transcriptomics",
-    tabPanel("Single-Cell Transcriptomics",
+    "single-cell app",
+    tabPanel("Single-Cell RNAseq clustering",
              br(),
              mainPanel(width=12,
                        tabsetPanel(type = "pills",
-                                   br(), br(),
+                                   br(),
                                    tabPanel("Quality Control & Filtering",
                                             sidebarLayout(
                                               sidebarPanel(
@@ -85,6 +85,10 @@ ui <- fluidPage(
                                                             choices = c("", "HumanPrimaryCellAtlasData", "BlueprintEncodeData",
                                                                         "MouseRNAseqData", "ImmGenData", "DatabaseImmuneCellExpressionData",
                                                                         "NovershternHematopoieticData", "MonacoImmuneData")),
+                                                selectInput("algo", "Clustering Algorithm", 
+                                                            choices = c("Louvain algorithm",
+                                                                        "Louvain algorithm with Multivelel Refinement",
+                                                                        "SLM Algorithm", "Leiden Algorithm")),
                                               ),
                                             mainPanel(
                                               fluidRow(
@@ -92,23 +96,12 @@ ui <- fluidPage(
                                                 column(6,
                                                        align = "center",
                                                        h4("Clustering of cells using UMAP"),
-                                                       plotOutput("umap") %>% withSpinner(color="#0dc5c1")),
-                                              #   column(5,
-                                              #          align = "center",
-                                              #          h4("t-SNE Clusters"),
-                                              #          plotOutput("tsne") %>% withSpinner(color="#0dc5c1")))
-                                              )))),
-                                   # tabPanel("Doublet Removal",
-                                   #          sidebarLayout(
-                                   #            sidebarPanel(),
-                                   #            mainPanel("To be added")
-                                   #          )),
+                                                       plotOutput("umap") %>% withSpinner(color="#0dc5c1")))))),
                                    tabPanel("Differentially Expressed Genes",
                                             sidebarLayout(
                                               sidebarPanel(
                                                 width = 3,
-                                                h4("Enter names genes to visualise"),
-                                                textInput("gene.list", "*separate using commas", value = "")
+                                                textInput("gene.list", "Enter gene name", value = "")
                                             ),
                                             fluidRow(
                                               column(4,
@@ -118,10 +111,12 @@ ui <- fluidPage(
                                               column(4,
                                                      align = "center",
                                                      plotOutput("deplot") %>% withSpinner(color="#0dc5c1"))))))),
-    
-    tabPanel("Single-Cell Intergration",
-             mainPanel()),
-    tabPanel("Spatial Transcriptomics Analysis",
-             mainPanel()),
+  ),
+  tabPanel("Single-Cell ATACseq workflow",
+           mainPanel()),
+  tabPanel("Single-Cell RNA-seq Integration",
+           mainPanel()),
+  tabPanel("Single-Cell ATAC-seq Integration",
+           mainPanel()),
   )
-))
+)
