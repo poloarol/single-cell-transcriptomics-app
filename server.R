@@ -7,6 +7,17 @@ pacman::p_load(tools, pacman, Seurat, SeuratObject, tidyverse, shiny, DT, shinyF
 
 source("doublet_removal.R")
 
+if (!require("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+
+BiocManager::install("SingleR")
+BiocManager::install("celldex")
+BiocManager::install("SingleCellExperiment")
+
+require(SingleR)
+require(celldex)
+require(SingleCellExperiment)
+
 
 load_data <- function(reads, project_name, num_cells = 3, num_features = 200){
     # Load the PBMC dataset
@@ -69,6 +80,13 @@ variable_features_plot <- function(data){
   return(plt)
 }
 
+add_cell_data <- function(data, reference){
+  result <- SingleR(test = as.SingleCellExperiment(data), ref = reference, labels = reference$label.main)
+  data$singlr_labels <- result$labels
+  return(data)
+}
+
+
 server <- function(input, output, session) {
   
   observed <- reactiveValues(rna1 = NULL, norm = NULL, hv = NULL)
@@ -126,6 +144,18 @@ server <- function(input, output, session) {
           mito = as.numeric(input$mito.pcts))
       }
   )
+  
+  datasetInput <- reactive({
+    switch(input$ref,
+           "HumanPrimaryCellAtlasData" = celldex::HumanPrimaryCellAtlasData(),
+           "BlueprintEncodeData" = celldex::BlueprintEncodeData(),
+           "MouseRNAseqData" = celldex::MouseRNAseqData(),
+           "ImmGenData" = celldex::ImmGenData(),
+           "DatabaseImmuneCellExpressionData" = celldex::DatabaseImmuneCellExpressionData(),
+           "NovershternHematopoieticData" = celldex::NovershternHematopoieticData(),
+           "MonacoImmuneData" = celldex::MonacoImmuneData()
+    )
+  })
 
   observe({
     if(input$subset){
@@ -175,11 +205,29 @@ server <- function(input, output, session) {
 
 
   umap_seurat <- reactive({RunUMAP(cluster_seurat(), dims = 1:input$num.dim)})
-  umap_plot <- reactive({DimPlot(umap_seurat(), reduction = "umap")})
-  output$umap <- renderPlot(umap_plot())
-
   tsne_seurat <- reactive({RunTSNE(cluster_seurat(), dims = 1:input$num.dim)})
-  tsne_plot <- reactive({DimPlot(tsne_seurat(), reduction = "tsne")})
+  
+  umap_plot <- reactive({
+    if(is.null(datasetInput())){
+      DimPlot(umap_seurat(), reduction = "umap")
+    }else{
+      dt <- add_cell_data(umap_seurat(), datasetInput())
+      DimPlot(dt, group.by = "singlr_labels", reduction = "umap", label = TRUE)
+    }
+  })
+  
+  
+  tsne_plot <- reactive({
+    if(is.null(datasetInput())){
+      DimPlot(tsne_seurat(), reduction = "tsne")
+    }else{
+      dt <- add_cell_data(tsne_seurat(), datasetInput())
+      DimPlot(dt,group.by = "singlr_labels", reduction = "tsne")
+    }
+    
+  })
+  
+  output$umap <- renderPlot(umap_plot())
   output$tsne <- renderPlot(tsne_plot())
 
 
@@ -187,7 +235,7 @@ server <- function(input, output, session) {
   biomarkers <- reactive({
     markers <- FindAllMarkers(umap_seurat(), only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
     df_grouped <- split(markers, markers$cluster)
-    top2_rows <- lapply(df_grouped, function(x) x[order(x$avg_log2FC, decreasing = TRUE)[1:2],])
+    top2_rows <- lapply(df_grouped, function(x){x[order(x$avg_log2FC, decreasing = TRUE)[1:2],]})
     df_result <- do.call(rbind, top2_rows)
     df <- df_result[c("gene","avg_log2FC","p_val_adj")]
     df <- df[order(-df$avg_log2FC),]

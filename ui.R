@@ -80,18 +80,24 @@ ui <- fluidPage(
                                                 width = 3,
                                                 h4("Dimensionality Reduction Parameters"),
                                                 numericInput("num.dim", "Number of dimensions", 10),
-                                                sliderInput("range", "UMAP Resolution:",min = 0, max = 100, value = 50)
+                                                sliderInput("range", "UMAP Resolution:",min = 0, max = 100, value = 50),
+                                                selectInput("ref", "Reference organism", 
+                                                            choices = c("", "HumanPrimaryCellAtlasData", "BlueprintEncodeData",
+                                                                        "MouseRNAseqData", "ImmGenData", "DatabaseImmuneCellExpressionData",
+                                                                        "NovershternHematopoieticData", "MonacoImmuneData")),
                                               ),
                                             mainPanel(
                                               fluidRow(
-                                                column(5,
+                                                column(3),
+                                                column(6,
                                                        align = "center",
-                                                       h4("UMAP Clusters"),
+                                                       h4("Clustering of cells using UMAP"),
                                                        plotOutput("umap") %>% withSpinner(color="#0dc5c1")),
-                                                column(5,
-                                                       align = "center",
-                                                       h4("t-SNE Clusters"),
-                                                       plotOutput("tsne") %>% withSpinner(color="#0dc5c1")))))),
+                                              #   column(5,
+                                              #          align = "center",
+                                              #          h4("t-SNE Clusters"),
+                                              #          plotOutput("tsne") %>% withSpinner(color="#0dc5c1")))
+                                              )))),
                                    # tabPanel("Doublet Removal",
                                    #          sidebarLayout(
                                    #            sidebarPanel(),

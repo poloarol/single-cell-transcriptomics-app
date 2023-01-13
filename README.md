@@ -13,13 +13,28 @@ The analysis to be included are;
 2. Single cell data integration
 3. Single cell ATAC-seq analysis
 4. Integration of scRNA-seq and scATAC-seq data
-5. Integration of cite-Seq data
+5. Multimodal analysis using cite-seq
 6. Automatic cell labelling
 
+
+Supported data formats
+----------------------
+1. 10X Cell Ranger (.HDF5)
+2. loom
+3. rds
+4. AnnData (.h5ad)
+5. .mtx, name your files as; features_*.tsv, matrix_*.mtrx and genes_*.tsv
+
+
 ## Status
-1. Completed scRNA-seq workflow
-2. Comming soon: automatic labelling and doublet removal
-3. scATAC-seq analysis
+---------
+- [X] scRNA-seq clustering workflow
+- [X] Automatic cell labelling
+- [ ] scATAC-seq workflow
+- [ ] Doublet removal
+- [ ] scRNA-seq data integration
+- [ ] scRNA-seq + scATAC seq data integration
+- [ ] Multimodal analysis using cite-seq
 
 ## Packages
 -----------
@@ -31,6 +46,6 @@ The analysis to be included are;
 
 ## Usage
 --------
-Currently the program can only be used by closing to the repository and running locally
+Currently the program can only be used by cloning the repository and running locally
 
 The next step would be to provide it as a docker image to ease its distribution.
