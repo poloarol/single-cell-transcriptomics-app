@@ -2,7 +2,9 @@
 
 if (!require('pacman')) install.packages("pacman")
 
-pacman::p_load(pacman, tidyverse, shiny, DT, shinycssloaders)
+pacman::p_load(pacman, tidyverse, shiny, DT, shinycssloaders, shinyFiles, shinyWidgets)
+
+options(shiny.maxRequestSize = 30*1024^2)
 
 ui <- fluidPage(
   
@@ -19,7 +21,11 @@ ui <- fluidPage(
                                             sidebarLayout(
                                               sidebarPanel(
                                                 width = 3,
-                                                h4("Parameters"),
+                                                fileInput("rna1", "Load 10X Genomics data",
+                                                          multiple = TRUE,
+                                                          accept = c(".csv", ".tsv", ".mtx", 
+                                                                     ".RDS", ".HDF5", ".loom", "h5ad")),
+                                                h4("Adjust parameters for MTX dataset"),
                                                 textInput("proj.name", "Project name",value = "abc13"),
                                                 numericInput("min.cells", "Min. number of cells", 5),
                                                 numericInput("min.feats", "Min. number of features", 200),
@@ -105,7 +111,6 @@ ui <- fluidPage(
                                                      DT::dataTableOutput("biomarkers") %>% withSpinner(color="#0dc5c1")),
                                               column(4,
                                                      align = "center",
-                                                     h4("Violin Plot of expressed biomarker"),
                                                      plotOutput("deplot") %>% withSpinner(color="#0dc5c1"))))))),
     
     tabPanel("Single-Cell Intergration",

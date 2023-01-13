@@ -3,14 +3,14 @@
 if (!require('pacman')) install.packages("pacman")
 
 # Load contributed packages with pacman
-pacman::p_load(pacman, Seurat, SeuratObject, tidyverse, shiny, DT)
+pacman::p_load(tools, pacman, Seurat, SeuratObject, tidyverse, shiny, DT, shinyFiles, shinyWidgets)
 
 source("doublet_removal.R")
 
 
-load_data <- function(project_name, num_cells = 3, num_features = 200){
+load_data <- function(reads, project_name, num_cells = 3, num_features = 200){
     # Load the PBMC dataset
-    reads <- Read10X(data.dir = "data/pbmc3k/filtered_gene_bc_matrices/hg19/")
+    # reads <- Read10X(data.dir = folder_path)
     # Initialize the Seurat object with the raw (non-normalized data).
     datum <- CreateSeuratObject(
             counts = reads,
@@ -19,7 +19,6 @@ load_data <- function(project_name, num_cells = 3, num_features = 200){
             min.features = num_features)
     
     datum[["percent.mt"]] <- PercentageFeatureSet(datum, pattern = "^MT-")
-    
     return(datum)
 }
 
@@ -72,20 +71,43 @@ variable_features_plot <- function(data){
 
 server <- function(input, output, session) {
   
-  observed <- reactiveValues(norm = NULL, hv = NULL)
+  observed <- reactiveValues(rna1 = NULL, norm = NULL, hv = NULL)
   
   seurat_obj <- eventReactive(
-    eventExpr = 
-      {
-      input$proj.name
-      input$min.cells
-      input$min.feats
+    eventExpr = {
+      input$rna1
       }, {
-        load_data(
-          project_name = input$proj.name,
-          num_cells = input$min.cells,
-          num_features = input$min.feats)
-  })
+      if(length(input$rna1$datapath) > 1){
+        dt_read <- ReadMtx(
+                mtx = input$rna1$datapath[3],
+                cells = input$rna1$datapath[1],
+                features = input$rna1$datapath[2]
+                )
+        data <- load_data(dt_read, input$proj.name, input$min.cells, input$min.feats)      
+      } else {
+        extension = tolower(file_ext(input$rna1$datapath[1]))
+        if(extension == "loom"){
+          dt_read <-as.Seurat(Connect(filename = input$rna1$datapath[1], mode = "r"))
+          data <- load_data(dt_read, input$proj.name, input$min.cells, input$min.feats) 
+        }else if(extension == "h5ad"){
+          obj <- Connect(filename = input$rna1$datapath[1], des="h5seurat", overwrite = TRUE)
+          dt_read <- LoadH5Seurat(obj)
+          data <- load_data(dt_read, input$proj.name, input$min.cells, input$min.feats)
+        }else if(extension == "hdf5"){
+          obj <- Read10X_h5(input$rna1$datapath[1])
+          load_data(obj, input$proj.name, input$min.cells, input$min.feats)
+        }else if(extension == "rds"){
+          readRDS(input$rna1$datapath[1])
+          data <- load_data(dt_read, input$proj.name, input$min.cells, input$min.feats)
+        }else {
+          print("Enter an appropriate format")
+        }
+      }
+      
+      
+    }
+  )
+  
   
   output$metrics <- renderPlot(metricsplot(seurat_obj()))
   output$features <- renderPlot(featureplot(seurat_obj()))
@@ -93,7 +115,9 @@ server <- function(input, output, session) {
   subset_seurat <- eventReactive(
     eventExpr =
       {
-        input$subset
+        input$min.genes
+        input$max.genes
+        input$mito.pcts
       }, {
         subset_dataset(
           data = seurat_obj(),
@@ -102,24 +126,25 @@ server <- function(input, output, session) {
           mito = as.numeric(input$mito.pcts))
       }
   )
-  
+
   observe({
     if(input$subset){
+      print(seurat_obj())
       print("Doublet removal")
     }
   })
-  
+
   observe({
     if(input$run.norm){
       data <- normalize_data(subset_seurat(), input$normalization, input$nfeatures)
       observed$hv <- variable_features(data, input$ftselection)
     }
   })
-  
+
   hv.plot <- reactive({variable_features_plot(observed$hv)})
   output$topvariable <- renderPlot(hv.plot())
 
-  
+
   scaled_seurat <- reactive({
     all.genes <- rownames(observed$hv)
     ScaleData(observed$hv, all.genes)
@@ -152,12 +177,12 @@ server <- function(input, output, session) {
   umap_seurat <- reactive({RunUMAP(cluster_seurat(), dims = 1:input$num.dim)})
   umap_plot <- reactive({DimPlot(umap_seurat(), reduction = "umap")})
   output$umap <- renderPlot(umap_plot())
-  
+
   tsne_seurat <- reactive({RunTSNE(cluster_seurat(), dims = 1:input$num.dim)})
   tsne_plot <- reactive({DimPlot(tsne_seurat(), reduction = "tsne")})
   output$tsne <- renderPlot(tsne_plot())
-  
-  
+
+
 
   biomarkers <- reactive({
     markers <- FindAllMarkers(umap_seurat(), only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
@@ -171,7 +196,7 @@ server <- function(input, output, session) {
   })
 
   output$biomarkers <- DT::renderDataTable({biomarkers()}, rownames = FALSE)
-  
+
   gene.list <- reactive({
     if(is.null(input$gene.list)){
       df <- biomarkers()
@@ -180,7 +205,7 @@ server <- function(input, output, session) {
       unlist(strsplit(input$gene.list, ","))
     }
   })
-  
+
   output$deplot <- renderPlot(VlnPlot(umap_seurat(), features = gene.list()))
 
   # output$heatmap <- renderPlot({
