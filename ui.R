@@ -4,7 +4,7 @@ if (!require('pacman')) install.packages("pacman")
 
 pacman::p_load(pacman, tidyverse, shiny, DT, shinycssloaders, shinyFiles, shinyWidgets)
 
-options(shiny.maxRequestSize = 30*1024^2)
+options(shiny.maxRequestSize = 30*1024^4)
 
 ui <- fluidPage(
   
@@ -23,7 +23,7 @@ ui <- fluidPage(
                                                 width = 3,
                                                 fileInput("rna1", "Load 10X Genomics data",
                                                           multiple = TRUE,
-                                                          accept = c(".csv", ".tsv", ".mtx", 
+                                                          accept = c(".csv", ".tsv", ".mtx", ".h5",
                                                                      ".RDS", ".HDF5", ".loom", "h5ad")),
                                                 h4("Adjust parameters for MTX dataset"),
                                                 textInput("proj.name", "Project name",value = "abc13"),
@@ -80,7 +80,7 @@ ui <- fluidPage(
                                                 width = 3,
                                                 h4("Dimensionality Reduction Parameters"),
                                                 numericInput("num.dim", "Number of dimensions", 10),
-                                                sliderInput("range", "UMAP Resolution:",min = 0, max = 100, value = 50),
+                                                sliderInput("range", "UMAP Resolution:",min = 0, max = 100, value = 30),
                                                 selectInput("ref", "Reference organism", 
                                                             choices = c("", "HumanPrimaryCellAtlasData", "BlueprintEncodeData",
                                                                         "MouseRNAseqData", "ImmGenData", "DatabaseImmuneCellExpressionData",
@@ -113,10 +113,107 @@ ui <- fluidPage(
                                                      plotOutput("deplot") %>% withSpinner(color="#0dc5c1"))))))),
   ),
   tabPanel("Single-Cell ATACseq workflow",
-           mainPanel()),
+           mainPanel(
+             br(),
+             tabsetPanel(type = "pills",
+                         br(),
+                         tabPanel("Quality Control and Filtering",
+                                  h4("Preprocessing"),
+                                  fluidRow(
+                                    column(3,
+                                           wellPanel(
+                                             fileInput("atac.peaks", "Peak/Cell Matrix",
+                                                       multiple = FALSE,
+                                                       accept = c(".csv", ".tsv", ".mtx", 
+                                                                  ".RDS", ".HDF5", ".loom", "h5ad")),
+                                             fileInput("atac.cellranger", "Cell Metadata",
+                                                       multiple = FALSE, accept = c(".")),
+                                             fileInput("atac.fragments", "Fragment File ",
+                                                       multiple = FALSE, accept = c(".")))),
+                                    column(3,
+                                           wellPanel(
+                                             selectInput("stats", "Statistical test", 
+                                                         choices = c("hg19", "h38", "mm10")),
+                                             numericInput("min.atac.cells", "Min. number of cells", 5),
+                                             numericInput("min.atac.feats", "Min. number of features", 200),
+                                         )),
+                                    column(6,
+                                           h4("QC Metrics"),
+                                           plotOutput("qcmetrics")  %>% withSpinner(color="#0dc5c1"))),
+                                  fluidRow(
+                                    h4("Filtering"),
+                                    column(3,
+                                           wellPanel(
+                                               numericInput("min.peaks.frag", "Min. Peak Region Fragments", value = 3000),
+                                               numericInput("max.peaks.frag", "Max. Peak Region Fragments", value = 20000),
+                                               numericInput("pct.reads", "% reads in Peaks", value = 15))),
+                                    column(3,
+                                           wellPanel(
+                                             numericInput("pct.blacklist", "% Blacklist ratio", value = 5),
+                                             numericInput("min.nuc.signal", "Min. Nucleosome Signal", value = 4),
+                                             numericInput("tss.enrichment", "TSS Enrichment", value = 2)))
+                                  ),
+                                  actionButton("run.atac", "Filter")),
+                         tabPanel("Dimensionality reduction",
+                                  navlistPanel(
+                                    tabPanel("Normalization and linear dimensionality reduction",
+                                             sidebarLayout(
+                                               sidebarPanel(
+                                                 width = 4,
+                                                 selectInput("cut.off", "Percentage of cells to cut-off", 
+                                                             choices = c("25%", "50%", "75%"))
+                                               ),
+                                             mainPanel())),
+                                    tabPanel("Non-linear dimensionality reduction",
+                                             sidebarLayout(
+                                               sidebarPanel(
+                                                 width = 5,
+                                                 h4("Dimensionality Reduction Parameters"),
+                                                 numericInput("num.dim", "Number of dimensions", 10),
+                                                 sliderInput("range", "UMAP Resolution:",min = 0, max = 100, value = 30),
+                                                 selectInput("ref", "Reference organism", 
+                                                             choices = c("", "HumanPrimaryCellAtlasData", "BlueprintEncodeData",
+                                                                         "MouseRNAseqData", "ImmGenData", "DatabaseImmuneCellExpressionData",
+                                                                         "NovershternHematopoieticData", "MonacoImmuneData")),
+                                                 selectInput("atac.algo", "Clustering Algorithm", 
+                                                             choices = c("Louvain algorithm",
+                                                                         "Louvain algorithm with Multivelel Refinement",
+                                                                         "SLM Algorithm", "Leiden Algorithm"))),
+                                               mainPanel())))),
+                         tabPanel("Gene activity matrix",
+                                  sidebarLayout(
+                                    sidebarPanel(
+                                      width = 4,
+                                      h4("RNA Count normalization strategy"),
+                                      radioButtons("normalization",
+                                                   "Normalization Strategy",
+                                                   choices = c("LogNormalize", "CLR", "RC"), inline = TRUE),
+                                      textInput('atac.gene', "Gene name")
+                                    ),
+                                    mainPanel())),
+                         tabPanel("scRNA-seq Integration",
+                                  navlistPanel(
+                                    tabPanel("scRNA-seq Integration",
+                                             sidebarLayout(
+                                               sidebarPanel(
+                                                 width = 4,
+                                                 h4("Dim. Reduction strategy to find anchors"),
+                                                 radioButtons("atac.dim",
+                                                              "Reduction methods",
+                                                              choices = c("Reciprocal PCA", "Canonical Correlation Analysis")),
+                                                 textInput('atac.gene', "Gene name")
+                                               ),
+                                               mainPanel())),
+                                    tabPanel("Identification of differentially accessible peaks",
+                                             sidebarLayout(
+                                               sidebarPanel(
+                                                 width = 4,
+                                                 selectInput("stats", "Statistical test", 
+                                                             choices = c("wilcox", "bimod", "roc", "t",
+                                                                         "negbinom", "poisson", "LR", "MAST", "DESeq2"))),
+                                               mainPanel())))),
+                         tabPanel("Plotting genomic regions")))),
   tabPanel("Single-Cell RNA-seq Integration",
-           mainPanel()),
-  tabPanel("Single-Cell ATAC-seq Integration",
            mainPanel()),
   )
 )

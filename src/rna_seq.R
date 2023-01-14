@@ -7,14 +7,14 @@ if (!require('pacman')) install.packages("pacman")
 # Load contributed packages with pacman
 pacman::p_load(tools, pacman, Seurat, SeuratObject, tidyverse, shiny, DT, shinyFiles, shinyWidgets)
 
-source("doublet_removal.R")
+source("src/doublet_removal.R")
 
-if (!require("BiocManager", quietly = TRUE))
-  install.packages("BiocManager")
-
-BiocManager::install("SingleR")
-BiocManager::install("celldex")
-BiocManager::install("SingleCellExperiment")
+# if (!require("BiocManager", quietly = TRUE))
+#   install.packages("BiocManager")
+# 
+# BiocManager::install("SingleR")
+# BiocManager::install("celldex")
+# BiocManager::install("SingleCellExperiment")
 
 require(SingleR)
 require(celldex)
@@ -26,6 +26,7 @@ load_data <- function(reads, project_name, num_cells = 3, num_features = 200){
   datum <- CreateSeuratObject(
     counts = reads,
     project = project_name,
+    names.delim = "-",
     min.cells = num_cells,
     min.features = num_features)
   
