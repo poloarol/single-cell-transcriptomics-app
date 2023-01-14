@@ -1,5 +1,5 @@
 
-# A R Shiny App to ease single-cell RNA transcriptomics analysis
+# A R Shiny App to ease single-cell analysis
 
 
 ## Aim
