@@ -116,7 +116,6 @@ ui <- fluidPage(
            mainPanel(
              br(),
              tabsetPanel(type = "pills",
-                         br(),
                          tabPanel("Quality Control and Filtering",
                                   h4("Preprocessing"),
                                   fluidRow(
@@ -137,9 +136,12 @@ ui <- fluidPage(
                                              numericInput("min.atac.cells", "Min. number of cells", 5),
                                              numericInput("min.atac.feats", "Min. number of features", 200),
                                          )),
-                                    column(6,
-                                           h4("QC Metrics"),
-                                           plotOutput("qcmetrics")  %>% withSpinner(color="#0dc5c1"))),
+                                    column(3,
+                                           h4("TSS Enrichment"),
+                                           plotOutput("tss", height = 250, width = 330)  %>% withSpinner(color="#0dc5c1")),
+                                    column(3,
+                                           h4("Nucleosome Signal"),
+                                           plotOutput("nucleosome", height = 250, width = 330)  %>% withSpinner(color="#0dc5c1"))),
                                   fluidRow(
                                     h4("Filtering"),
                                     column(3,
@@ -151,9 +153,10 @@ ui <- fluidPage(
                                            wellPanel(
                                              numericInput("pct.blacklist", "% Blacklist ratio", value = 5),
                                              numericInput("min.nuc.signal", "Min. Nucleosome Signal", value = 4),
-                                             numericInput("tss.enrichment", "TSS Enrichment", value = 2)))
-                                  ),
-                                  actionButton("run.atac", "Filter")),
+                                             numericInput("tss.enrichment", "TSS Enrichment", value = 2))),
+                                    column(6,
+                                           h4("QC Metrics"),
+                                           plotOutput("qcmetrics", width = 900, height = 250)  %>% withSpinner(color="#0dc5c1")))),
                          tabPanel("Dimensionality reduction",
                                   navlistPanel(
                                     tabPanel("Normalization and linear dimensionality reduction",
@@ -163,7 +166,10 @@ ui <- fluidPage(
                                                  selectInput("cut.off", "Percentage of cells to cut-off", 
                                                              choices = c("25%", "50%", "75%"))
                                                ),
-                                             mainPanel())),
+                                             mainPanel(
+                                               h4("Linear Dimensionality reduction using SVD"),
+                                               plotOutput("svd")  %>% withSpinner(color="#0dc5c1")
+                                             ))),
                                     tabPanel("Non-linear dimensionality reduction",
                                              sidebarLayout(
                                                sidebarPanel(
@@ -179,7 +185,10 @@ ui <- fluidPage(
                                                              choices = c("Louvain algorithm",
                                                                          "Louvain algorithm with Multivelel Refinement",
                                                                          "SLM Algorithm", "Leiden Algorithm"))),
-                                               mainPanel())))),
+                                               mainPanel(
+                                                 width = 7,
+                                                 h4("Non-linear dimensionality reduction using UMAP"),
+                                                 plotOutput("atac.umap", width = 500) %>% withSpinner(color="#0dc5c1")))))),
                          tabPanel("Gene activity matrix",
                                   sidebarLayout(
                                     sidebarPanel(
@@ -191,7 +200,7 @@ ui <- fluidPage(
                                       textInput('atac.gene', "Gene name")
                                     ),
                                     mainPanel())),
-                         tabPanel("scRNA-seq Integration",
+                         tabPanel("scRNA-seq Integration & Differential Accessibility",
                                   navlistPanel(
                                     tabPanel("scRNA-seq Integration",
                                              sidebarLayout(
@@ -203,7 +212,10 @@ ui <- fluidPage(
                                                               choices = c("Reciprocal PCA", "Canonical Correlation Analysis")),
                                                  textInput('atac.gene', "Gene name")
                                                ),
-                                               mainPanel())),
+                                               mainPanel(
+                                                 h4("Data Integration"),
+                                                 plotOutput("atac.rna.seq", width = "900") %>% withSpinner(color="#0dc5c1")
+                                               ))),
                                     tabPanel("Identification of differentially accessible peaks",
                                              sidebarLayout(
                                                sidebarPanel(
