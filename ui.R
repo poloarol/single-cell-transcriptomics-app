@@ -210,8 +210,7 @@ ui <- fluidPage(
                                                  radioButtons("atac.dim",
                                                               "Reduction methods",
                                                               choices = c("Reciprocal PCA", "Canonical Correlation Analysis")),
-                                                 textInput('atac.gene', "Gene name")
-                                               ),
+                                                 textInput('atac.gene', "Gene name")),
                                                mainPanel(
                                                  h4("Data Integration"),
                                                  plotOutput("atac.rna.seq", width = "900") %>% withSpinner(color="#0dc5c1")

@@ -7,7 +7,7 @@ if (!require('pacman')) install.packages("pacman")
 # Load contributed packages with pacman
 pacman::p_load(tools, pacman, Seurat, SeuratObject, tidyverse, shiny, DT, shinyFiles, shinyWidgets)
 
-source("src/doublet_removal.R")
+# source("src/doublet_removal.R")
 
 # if (!require("BiocManager", quietly = TRUE))
 #   install.packages("BiocManager")

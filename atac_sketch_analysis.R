@@ -10,7 +10,7 @@ pacman::p_load(pacman, Seurat, SeuratObject, Signac,
                EnsDb.Hsapiens.v75, EnsDb.Hsapiens.v79, hdf5r, 
                EnsDb.Mmusculus.v79, BiocManager)
 
-load_atac <- function(matrix, scfile, fragments, min.cells = 5, min.features = 200){
+load_data <- function(matrix, scfile, fragments, min.cells = 5, min.features = 200){
   
   metadata <- read.csv(
     file = scfile,
@@ -154,99 +154,48 @@ diff_accessibility <- function(data){
 }
 
 
-atacseq_analysis <- function(input, output, session){
 
-  peaks <- Read10X_h5(filename = "data/scatac-seq/atac_v1_pbmc_10k_filtered_peak_bc_matrix.h5")
-  data <- load_atac(peaks, scfile = "data/scatac-seq/atac_v1_pbmc_10k_singlecell.csv", fragments = "data/scatac-seq/atac_v1_pbmc_10k_fragments.tsv.gz")
-  
-  subset_seurat <- add_annotations(data)
-  subset_seurat <- normalise_dataset(subset_seurat)
-  
-  # subset_seurat <- readRDS("subset_seurat.rds")
-
-  output$tss <- renderPlot(TSSPlot(subset_seurat, group.by = 'high.tss') + NoLegend())
-
-  output$nucleosome <- renderPlot(FragmentHistogram(object = subset_seurat, group.by = 'nucleosome_group'))
-
-  output$qcmetrics <- renderPlot(VlnPlot(
-    object = subset_seurat,
-    features = c('pct_reads_in_peaks', 'peak_region_fragments',
-                 'TSS.enrichment', 'blacklist_ratio', 'nucleosome_signal'),
-    pt.size = 0.1,
-    ncol = 5
-  ))
-
-
-  # # observe({
-  # #   if(input$run.atac){
-  # #      seurat$filtered<- filter_dataset(
-  # #       data, min.peak = input$min.peaks.frag, max.peak = input$max.peaks.frag,
-  # #       pct.blacklist = input$blacklist, pct.reads = input$pct.reads,
-  # #       nuc.signal = input$min.nuc.signal, tss.enrich = input$tss.enrichment)
-  # #     
-  # #   }
-  # # })
-
-
-  subset_seurat <- filter_dataset(subset_seurat)
-  subset_seurat <- linear_dim_reduction(subset_seurat)
-  output$svd <- renderPlot(DepthCor(subset_seurat))
-
-  subset_seurat <- nonlinear_dim_reduction(subset_seurat)
-  output$atac.umap <- renderPlot(DimPlot(object = subset_seurat, label = TRUE) + NoLegend())
-
-  subset_seurat <- get_gene_activities(subset_seurat)
-
-  seurat_rna <- load_rnaseq("data/scatac-seq/pbmc_10k_v3.rds")
-
-  subset_seurat <- integrate_rnaseq(subset_seurat, seurat_rna)
-
-  output$atac.rna.seq <- renderPlot({
-    plot1 <- DimPlot(
-      object = seurat_rna,
-      group.by = 'celltype',
-      label = TRUE,
-      repel = TRUE) + NoLegend() + ggtitle('scRNA-seq')
-
-    plot2 <- DimPlot(
-      object = subset_seurat,
-      group.by = 'predicted.id',
-      label = TRUE,
-      repel = TRUE) + NoLegend() + ggtitle('scATAC-seq')
-
-    plot1 | plot2
-  })
-# 
-# 
-# 
-#   da_peaks <- reactive({diff_accessibility(subset_seurat())})
-}
+peaks <- Read10X_h5(filename = "data/scatac-seq/atac_v1_pbmc_10k_filtered_peak_bc_matrix.h5")
+data <- load_data(peaks, 
+            scfile = "data/scatac-seq/atac_v1_pbmc_10k_singlecell.csv", 
+            fragments = "data/scatac-seq/atac_v1_pbmc_10k_fragments.tsv.gz")
 
 
 
+data <- add_annotations(data)
+nm_seurat <- normalise_dataset(data)
 
 
+subset_seurat <- filter_dataset(nm_seurat)
+subset_seurat <- linear_dim_reduction(subset_seurat)
+subset_seurat <- nonlinear_dim_reduction(subset_seurat)
+subset_seurat <- get_gene_activities(subset_seurat)
+
+rnaseq <- load_rnaseq("data/scatac-seq/pbmc_10k_v3.rds")
+
+subset_seurat <- integrate_rnaseq(subset_seurat, rnaseq)
+
+subset_seurat <- subset(subset_seurat, idents = 14, invert = TRUE)
+subset_seurat <- RenameIdents(
+  object = subset_seurat,
+  '0' = 'CD14 Mono',
+  '1' = 'CD4 Memory',
+  '2' = 'CD8 Effector',
+  '3' = 'CD4 Naive',
+  '4' = 'CD14 Mono',
+  '5' = 'DN T',
+  '6' = 'CD8 Naive',
+  '7' = 'NK CD56Dim',
+  '8' = 'pre-B',
+  '9' = 'CD16 Mono',
+  '10' = 'pro-B',
+  '11' = 'DC',
+  '12' = 'NK CD56bright',
+  '13' = 'pDC'
+)
 
 
+da_peaks <- diff_accessibility(subset_seurat)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+saveRDS(subset_seurat, file = "data/scatac-seq/atac-seq-object.rds")
 
