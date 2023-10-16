@@ -30,8 +30,8 @@ Supported data formats
 ---------
 - [X] scRNA-seq clustering workflow
 - [X] Automatic cell labelling
-- [ ] scATAC-seq workflow
-- [ ] Doublet removal
+- [X] scATAC-seq workflow
+- [X] Doublet removal
 - [ ] scRNA-seq data integration
 - [ ] scRNA-seq + scATAC seq data integration
 - [ ] Multimodal analysis using cite-seq
